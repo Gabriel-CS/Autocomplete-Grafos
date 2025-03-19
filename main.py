@@ -1,5 +1,6 @@
 import tkinter as tk  # Importa o módulo tkinter com o alias 'tk' para criar interfaces gráficas.
 from tkinter import ttk  # Importa o submódulo ttk do tkinter, que fornece widgets temáticos.
+import unicodedata
 
 class TrieNode:
     """
@@ -193,12 +194,20 @@ class AutocompleteDashboard:
         self.entry.delete(0, tk.END)
         self.listbox.delete(0, tk.END)
         self.add_placeholder()
+
+    def normalize_text(self, text):
+        """
+        Converte o texto para minúsculas e remove acentos.
+        """
+        text = text.lower()
+        text = ''.join(c for c in unicodedata.normalize('NFKD', text) if not unicodedata.combining(c))
+        return text
     
     def update_suggestions(self, event):
         """
         Atualiza a lista de sugestões com base no texto atual do campo de entrada.
         """
-        prefix = self.entry.get()  # Obtém o texto atual do campo de entrada.
+        prefix = self.normalize_text(self.entry.get())  # Obtém o texto atual do campo de entrada.
         self.listbox.delete(0, tk.END)  # Limpa todas as entradas da lista.
         
         suggestions = self.trie.get_suggestions(prefix)  # Obtém sugestões da Trie.
