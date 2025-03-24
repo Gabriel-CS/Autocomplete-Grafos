@@ -82,7 +82,7 @@ class WeightedTrie:
         
         # Junta palavras da Trie com n-grams associados
         complete = [x[0] for x in suggestions]
-        return complete[:5] + [x[0] for x in self.ngrams.get(words[-1], [])]
+        return complete[:10] + [x[0] for x in self.ngrams.get(words[-1], [])]
 
 class AutocompleteDashboard:
     def __init__(self):
@@ -92,7 +92,7 @@ class AutocompleteDashboard:
         
         self.window = tk.Tk()
         self.window.title("AutoComplete")
-        self.window.geometry("500x400")
+        self.window.geometry("600x600")
         self.window.resizable(True, True)
         
         self.create_widgets()
@@ -121,28 +121,30 @@ class AutocompleteDashboard:
                 frequency = int(parts[0])
                 words = parts[1:-4]  # Ignoramos a parte final após '||'
                 self.trie.insert_ngram(words, frequency)
-    
+        
     def create_widgets(self):
         main_frame = ttk.Frame(self.window, padding=20)
         main_frame.pack(expand=True, fill='both')
 
-        # Frame para alinhar a Entry e o botão lado a lado
         entry_frame = ttk.Frame(main_frame)
         entry_frame.pack(fill='x', expand=True)
 
-        self.entry = ttk.Entry(entry_frame, width=35, font=("Arial", 12))  # Reduzi um pouco a largura
-        self.entry.grid(row=0, column=0, sticky="ew")  # Expande horizontalmente
+        self.entry = ttk.Entry(entry_frame, width=35, font=("Arial", 16))
+        self.entry.grid(row=0, column=0, sticky="ew")
         self.entry.bind("<KeyRelease>", self.update_suggestions)
 
-        # Botão de Clear ao lado da Entry
-        self.clear_button = ttk.Button(entry_frame, text="X", width=3, command=self.clear_entry)
-        self.clear_button.grid(row=0, column=1, padx=5)  # Adiciona espaço à esquerda
+        # Define um estilo para o botão Clear, aumentando o padding (o que aumenta a altura)
+        style = ttk.Style()
+        style.configure("Clear.TButton", font=("Arial", 12), padding=(2, 2))  # padding=(horizontal, vertical)
 
-        # Ajusta o layout para expandir corretamente
+        self.clear_button = ttk.Button(entry_frame, text="X", width=3, command=self.clear_entry, style="Clear.TButton")
+        self.clear_button.grid(row=0, column=1, padx=5)
+
         entry_frame.columnconfigure(0, weight=1)
 
-        self.listbox = tk.Listbox(main_frame, width=40, height=8, font=("Arial", 12))
+        self.listbox = tk.Listbox(main_frame, width=40, height=15, font=("Arial", 16))
         self.listbox.pack(fill='both', expand=True)
+
 
     def clear_entry(self):
         """Limpa o campo de entrada."""
@@ -174,7 +176,7 @@ class AutocompleteDashboard:
         prefix = self.normalize_text(self.entry.get()).strip()
         self.listbox.delete(0, tk.END)
         suggestions = self.trie.get_suggestions(prefix)
-        for suggestion in suggestions[:8]:
+        for suggestion in suggestions[:20]:
             self.listbox.insert(tk.END, suggestion)
     
     def run(self):
