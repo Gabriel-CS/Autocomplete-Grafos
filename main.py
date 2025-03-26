@@ -1,88 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 import unicodedata
-from collections import defaultdict
-
-class TrieNode:
-    """
-    Classe que representa um nó na estrutura Trie.
-    Cada nó contém:
-    - children: um dicionário que mapeia caracteres para seus nós filhos.
-    - is_end: um booleano que indica se o nó corresponde ao final de uma palavra.
-    - min_distance: a menor distância restante até o final de uma palavra a partir deste nó.
-    """
-    def __init__(self):
-        self.children = {}
-        self.is_end = False
-        self.min_distance = float('inf')
-        self.suggestions = []  # Armazena sugestões de n-grams
-
-class WeightedTrie:
-    """
-    Classe que representa uma Trie ponderada.
-    Fornece métodos para inserir palavras e obter sugestões com base em um prefixo.
-    """
-    def __init__(self):
-        self.root = TrieNode()
-        self.ngrams = defaultdict(list)  # Dicionário para armazenar n-grams
-    
-    def insert(self, word: str):
-        """
-        Insere uma palavra na Trie.
-        Para cada caractere na palavra, atualiza ou adiciona nós filhos conforme necessário.
-        Também atualiza a menor distância restante (min_distance) em cada nó.
-        """
-        node = self.root
-        length = len(word)
-        for i, char in enumerate(word):
-            remaining = length - i
-            node.min_distance = min(node.min_distance, remaining)
-            if char not in node.children:
-                node.children[char] = TrieNode()
-            node = node.children[char]
-        node.is_end = True
-        node.min_distance = 0
-    
-    def insert_ngram(self, words: list, frequency: int):
-        key = " ".join(words).lower()
-        key = ''.join(c for c in unicodedata.normalize('NFKD', key) if not unicodedata.combining(c))
-        self.ngrams[words[0]].append((key, frequency))
-        self.ngrams[words[0]].sort(key=lambda x: -x[1])  # Ordena por frequência decrescente
-
-    
-    def _collect_suggestions(self, node, current_prefix, suggestions):
-        """
-        Método recursivo que coleta todas as palavras a partir de um determinado nó.
-        Adiciona cada palavra encontrada à lista de sugestões com seu comprimento.
-        """
-        if node.is_end:
-            suggestions.append((current_prefix, len(current_prefix)))
-        for char, child in node.children.items():
-            self._collect_suggestions(child, current_prefix + char, suggestions)
-
-    def get_suggestions(self, prefix: str):
-        """
-        Retorna uma lista de sugestões de palavras que começam com o prefixo fornecido.
-        As sugestões são ordenadas pela menor distância e, em caso de empate, em ordem alfabética.
-        """
-        node = self.root
-        prefix_stripped = prefix.strip()
-        words = prefix_stripped.split()
-
-        if len(words) == 0: return []
-
-        for char in words[-1]:
-            if char not in node.children:
-                return  [x[0] for x in self.ngrams.get(words[-1], [])]  # Retorna n-grams associados, se existirem
-            node = node.children[char]
-
-        suggestions = []
-        self._collect_suggestions(node, prefix, suggestions)
-        suggestions.sort(key=lambda x: (len(x[0]) - len(prefix), x[0]))
-        
-        # Junta palavras da Trie com n-grams associados
-        complete = [x[0] for x in suggestions]
-        return complete[:10] + [x[0] for x in self.ngrams.get(words[-1], [])]
+from trie import WeightedTrie
 
 class AutocompleteDashboard:
     def __init__(self):
@@ -119,10 +38,13 @@ class AutocompleteDashboard:
                 if len(parts) < 3:
                     continue
                 frequency = int(parts[0])
-                words = parts[1:-4]  # Ignoramos a parte final após '||'
+                words = parts[1:-4]
                 self.trie.insert_ngram(words, frequency)
         
     def create_widgets(self):
+        """
+        Cria os widgets principais da interface gráfica.
+        """
         main_frame = ttk.Frame(self.window, padding=20)
         main_frame.pack(expand=True, fill='both')
 
@@ -133,9 +55,8 @@ class AutocompleteDashboard:
         self.entry.grid(row=0, column=0, sticky="ew")
         self.entry.bind("<KeyRelease>", self.update_suggestions)
 
-        # Define um estilo para o botão Clear, aumentando o padding (o que aumenta a altura)
         style = ttk.Style()
-        style.configure("Clear.TButton", font=("Arial", 12), padding=(2, 2))  # padding=(horizontal, vertical)
+        style.configure("Clear.TButton", font=("Arial", 12), padding=(2, 2))
 
         self.clear_button = ttk.Button(entry_frame, text="X", width=3, command=self.clear_entry, style="Clear.TButton")
         self.clear_button.grid(row=0, column=1, padx=5)
@@ -147,17 +68,25 @@ class AutocompleteDashboard:
 
 
     def clear_entry(self):
-        """Limpa o campo de entrada."""
+        """
+        Limpa o campo de entrada e a lista de sugestões.
+        """
         self.entry.delete(0, tk.END)
         self.listbox.delete(0, tk.END)
 
     
     def setup_placeholder(self):
+        """
+        Configura o texto de placeholder no campo de entrada.
+        """
         self.placeholder_text = "Digite para buscar..."
         self.entry.insert(0, self.placeholder_text)
         self.entry.bind("<FocusIn>", self.remove_placeholder)
     
     def remove_placeholder(self, event=None):
+        """
+        Remove o texto de placeholder quando o campo de entrada é focado.
+        """
         if self.entry.get() == self.placeholder_text:
             self.entry.delete(0, tk.END)
 
